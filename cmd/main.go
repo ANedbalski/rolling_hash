@@ -10,7 +10,8 @@ func main() {
 	app := &cli.App{
 		Usage: "compare files",
 		Commands: []*cli.Command{
-			runCommand,
+			signatureCommand,
+			deltaCommand,
 		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
