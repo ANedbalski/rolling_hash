@@ -44,7 +44,7 @@ func deltaAction(c *cli.Context) error {
 	}
 	defer f.Close()
 
-	diff, err := os.Open(c.Args().Get(2))
+	diff, err := os.OpenFile(c.Args().Get(2), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0600))
 	if err != nil {
 		return fmt.Errorf("canot create diff-file %s \n %w", c.Args().Get(2), err)
 	}

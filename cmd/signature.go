@@ -5,6 +5,8 @@ import (
 	"github.com/urfave/cli/v2"
 	"os"
 	"rollingHash/app"
+	"rollingHash/app/algo"
+	"rollingHash/app/storage"
 )
 
 var (
@@ -35,13 +37,21 @@ func signatureAction(c *cli.Context) error {
 	}
 	defer in.Close()
 
-	out, err := os.Open(c.Args().Get(1))
+	out, err := os.OpenFile(c.Args().Get(1), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0600))
 	if err != nil {
 		return fmt.Errorf("caanot create signature-file %s \n %w", c.Args().Get(1), err)
 	}
 	defer out.Close()
 
-	_, err = app.NewSignature(in, out)
+	sig := app.NewSignature(algo.NewAdler32(), algo.MD5, 512)
+	if err = sig.Calc(in); err != nil {
+		return fmt.Errorf("signature-file cannot be empty")
+	}
 
-	return err
+	storage := storage.NewSignatureStorage(out)
+	if err = storage.Store(sig); err != nil {
+		return fmt.Errorf("signature-file cannot be empty")
+	}
+
+	return nil
 }

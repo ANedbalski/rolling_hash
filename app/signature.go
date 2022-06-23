@@ -1,52 +1,64 @@
 package app
 
 import (
-	md52 "crypto/md5"
-	"encoding/binary"
 	"fmt"
-	"hash/adler32"
 	"io"
+	"rollingHash/app/algo"
 )
 
 const maxBlockSize = 512
 
-type signature struct {
-	blockSize   int
-	rollingHash map[uint32]int64
-	md5Hash     [][16]byte
+type Signature struct {
+	RollingHashAlgo algo.RollingHash
+	StrongHashAlgo  algo.StrongHash
+	BlockSize       int64
+	rollingHash     map[uint32]int64
+	md5Hash         [][]byte
 }
 
-func NewSignature(in io.Reader, out io.Writer) (*signature, error) {
-	blockSize := maxBlockSize
-	sig := &signature{
-		blockSize:   blockSize,
-		rollingHash: map[uint32]int64{},
-		md5Hash:     make([][16]byte, 0),
+func NewSignature(r algo.RollingHash, s algo.StrongHash, blockSize int64) *Signature {
+	return &Signature{
+		RollingHashAlgo: r,
+		StrongHashAlgo:  s,
+		BlockSize:       blockSize,
+		rollingHash:     make(map[uint32]int64),
+		md5Hash:         make([][]byte, 0),
 	}
+}
+
+func (s *Signature) Calc(in io.Reader) error {
 	for {
-		block := make([]byte, blockSize)
-		_, err := in.Read(block)
+		block := make([]byte, s.BlockSize)
+		n, err := in.Read(block)
 		if err == io.ErrUnexpectedEOF || err == io.EOF {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("smth went wrong, %w", err)
+			return fmt.Errorf("smth went wrong, %w", err)
 		}
+		checkSum := s.RollingHashAlgo.
+			Reset().
+			Write(block[:n]).
+			Hash()
 
-		checkSum := adler32.Checksum(block)
-		md5 := md52.Sum(block)
+		md5 := s.StrongHashAlgo.Sum(block[:n])
 
-		err = binary.Write(out, binary.BigEndian, checkSum)
-		if err != nil {
-			return nil, fmt.Errorf("smth went wrong, %w", err)
-		}
-		err = binary.Write(out, binary.BigEndian, md5)
-		if err != nil {
-			return nil, fmt.Errorf("smth went wrong, %w", err)
-		}
-		sig.rollingHash[checkSum] = int64(len(sig.md5Hash))
-		sig.md5Hash = append(sig.md5Hash, md5)
+		s.rollingHash[checkSum] = int64(len(s.md5Hash))
+		s.md5Hash = append(s.md5Hash, md5)
 	}
 
-	return sig, nil
+	return nil
+}
+
+func (s *Signature) BlockStrongHash(i int64) []byte {
+	return s.md5Hash[i]
+}
+
+func (s *Signature) Find(sum uint32) (int64, bool) {
+	i, ok := s.rollingHash[sum]
+	return i, ok
+}
+
+func (s *Signature) Checksum() map[uint32]int64 {
+	return s.rollingHash
 }
