@@ -95,7 +95,7 @@ func TestDelta_Calc(t *testing.T) {
 			if !assert.Nil(t, err) {
 				return
 			}
-			assert.Equal(t, tt.delta, delta.getRecords())
+			assert.Equal(t, tt.delta, delta.GetRecords())
 		})
 	}
 

@@ -44,12 +44,13 @@ func signatureAction(c *cli.Context) error {
 	defer out.Close()
 
 	sig := app.NewSignature(algo.NewAdler32(), algo.MD5, 512)
-	if err = sig.Calc(in); err != nil {
+	sig.Calc(in)
+	if err != nil {
 		return fmt.Errorf("signature-file cannot be empty")
 	}
 
-	storage := storage.NewSignatureStorage(out)
-	if err = storage.Store(sig); err != nil {
+	err = storage.NewSignatureStorage(out, nil).Store(sig)
+	if err != nil {
 		return fmt.Errorf("signature-file cannot be empty")
 	}
 

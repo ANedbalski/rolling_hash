@@ -13,7 +13,6 @@ type RollingHash interface {
 type StrongHash interface {
 	Sum([]byte) []byte
 	Size() uint16
-	Name() string
 }
 
 type StrongHashImpl struct {
@@ -28,8 +27,4 @@ func (s StrongHashImpl) Sum(b []byte) []byte {
 
 func (s StrongHashImpl) Size() uint16 {
 	return s.size
-}
-
-func (s StrongHashImpl) Name() string {
-	return s.name
 }

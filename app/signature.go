@@ -6,8 +6,6 @@ import (
 	"rollingHash/app/algo"
 )
 
-const maxBlockSize = 512
-
 type Signature struct {
 	RollingHashAlgo algo.RollingHash
 	StrongHashAlgo  algo.StrongHash
@@ -36,6 +34,7 @@ func (s *Signature) Calc(in io.Reader) error {
 		if err != nil {
 			return fmt.Errorf("smth went wrong, %w", err)
 		}
+
 		checkSum := s.RollingHashAlgo.
 			Reset().
 			Write(block[:n]).
@@ -43,8 +42,7 @@ func (s *Signature) Calc(in io.Reader) error {
 
 		md5 := s.StrongHashAlgo.Sum(block[:n])
 
-		s.rollingHash[checkSum] = int64(len(s.md5Hash))
-		s.md5Hash = append(s.md5Hash, md5)
+		s.AddHashRecord(checkSum, md5)
 	}
 
 	return nil
@@ -61,4 +59,10 @@ func (s *Signature) Find(sum uint32) (int64, bool) {
 
 func (s *Signature) Checksum() map[uint32]int64 {
 	return s.rollingHash
+}
+
+func (s *Signature) AddHashRecord(checksum uint32, md5 []byte) {
+	s.rollingHash[checksum] = int64(len(s.md5Hash))
+	s.md5Hash = append(s.md5Hash, md5)
+
 }

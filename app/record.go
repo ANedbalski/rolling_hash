@@ -1,5 +1,9 @@
 package app
 
+import (
+	"github.com/balena-os/circbuf"
+)
+
 type Op int
 
 const (
@@ -15,23 +19,49 @@ type Record struct {
 }
 
 type DeltaData struct {
-	records []Record
+	records   []Record
+	blockSize int64
+	newData   circbuf.Buffer
 }
 
-func NewDeltaData() *DeltaData {
-	return &DeltaData{records: []Record{}}
+func NewDeltaData(s int64) (*DeltaData, error) {
+	b, err := circbuf.NewBuffer(s)
+	if err != nil {
+		return nil, err
+	}
+	return &DeltaData{
+		records:   []Record{},
+		blockSize: s,
+		newData:   b,
+	}, nil
 }
 
 func (d *DeltaData) addCopy(pos, len uint64) {
+	d.flush()
 	d.records = append(d.records, Record{Op: OP_COPY, Pos: pos, Len: len})
 }
 
-func (d *DeltaData) addNew(block []byte) {
-	b := make([]byte, len(block))
-	copy(b, block)
-	d.records = append(d.records, Record{Op: OP_ADD, Data: b})
+func (d *DeltaData) addNew(b byte) error {
+	err := d.newData.WriteByte(b)
+	if err != nil {
+		return err
+	}
+	if d.newData.TotalWritten() >= d.blockSize {
+		d.flush()
+	}
+	return nil
 }
 
-func (d *DeltaData) getRecords() []Record {
+func (d *DeltaData) flush() {
+	if d.newData.TotalWritten() == 0 {
+		return
+	}
+	b := make([]byte, d.newData.TotalWritten())
+	copy(b, d.newData.Bytes())
+	d.records = append(d.records, Record{Op: OP_ADD, Data: b})
+	d.newData.Reset()
+}
+
+func (d *DeltaData) GetRecords() []Record {
 	return d.records
 }

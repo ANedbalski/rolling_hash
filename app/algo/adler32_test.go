@@ -155,5 +155,5 @@ func TestAdler32_Reset(t *testing.T) {
 
 	a.Reset()
 
-	assert.Zero(t, a.Hash())
+	assert.Equal(t, uint32(1), a.Hash())
 }

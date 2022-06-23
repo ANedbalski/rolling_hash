@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"github.com/urfave/cli/v2"
 	"os"
+	"rollingHash/app"
+	"rollingHash/app/algo"
+	"rollingHash/app/storage"
 )
 
 var (
@@ -49,6 +52,21 @@ func deltaAction(c *cli.Context) error {
 		return fmt.Errorf("canot create diff-file %s \n %w", c.Args().Get(2), err)
 	}
 	defer diff.Close()
+
+	signature, err := storage.NewSignatureStorage(nil, sig).Load()
+	if err != nil {
+		return fmt.Errorf("incorrect signature data: %w", err)
+	}
+
+	delta, err := app.NewDelta(algo.NewAdler32(), algo.MD5).Calc(signature, f)
+	if err != nil {
+		return fmt.Errorf("error calculation delta: %w", err)
+	}
+
+	err = storage.NewDeltaStorage(diff).Store(delta.GetRecords())
+	if err != nil {
+		return fmt.Errorf("error storing delta: %w", err)
+	}
 
 	return nil
 }
