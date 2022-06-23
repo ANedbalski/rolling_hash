@@ -3,6 +3,7 @@ package algo
 type RollingHash interface {
 	Write([]byte) RollingHash
 	Roll(out, in byte) RollingHash
+	Rollin(in byte) RollingHash
 	Rollout(out byte) RollingHash
 	Hash() uint32
 	Reset() RollingHash

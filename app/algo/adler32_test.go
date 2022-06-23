@@ -23,8 +23,8 @@ func TestAdler32_Write(t *testing.T) {
 			hash: 0x8124342d,
 		},
 		{
-			data: []byte{1, 2},
-			hash: 0xa0004,
+			data: []byte("12"),
+			hash: 0x00960064,
 		},
 	}
 
@@ -105,6 +105,44 @@ func TestAdler32_Rollout(t *testing.T) {
 			_ = a.Rollout(tt.out)
 
 			assert.Equal(t, tt.hashAfter, a.Hash())
+		})
+	}
+}
+
+func TestAdler32_Rollin(t *testing.T) {
+	testCases := []struct {
+		name         string
+		startingData []byte
+		in           byte
+		hashBefore   uint32
+		hashAfter    uint32
+	}{
+		{
+			name:         "add 1st",
+			startingData: []byte(""),
+			in:           []byte("A")[0],
+			hashBefore:   0x1,
+			hashAfter:    0x00420042,
+		},
+		{
+			name:         "add next",
+			startingData: []byte("Any data"),
+			in:           []byte("A")[0],
+			hashBefore:   0x0c8402e3,
+			hashAfter:    0x0fa80324,
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			a := NewAdler32().Write(tt.startingData)
+
+			assert.Equal(t, tt.hashBefore, a.Hash())
+
+			_ = a.Rollin(tt.in)
+
+			assert.Equal(t, tt.hashAfter, a.Hash())
+
 		})
 	}
 

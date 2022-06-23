@@ -12,11 +12,10 @@ type Adler32 struct {
 }
 
 func NewAdler32() RollingHash {
-	return &Adler32{}
+	return &Adler32{cnt: 0, s1: 1, s2: 0}
 }
 
 func (a *Adler32) Write(b []byte) RollingHash {
-	a.s1 = 1
 	for _, i := range b {
 		a.cnt++
 		a.s1 = (a.s1 + uint32(i)) % BASE_MOD
@@ -40,13 +39,20 @@ func (a *Adler32) Rollout(out byte) RollingHash {
 	return a
 }
 
+func (a *Adler32) Rollin(in byte) RollingHash {
+	a.s1 = (a.s1 + uint32(in)) % BASE_MOD
+	a.s2 = (a.s2 + a.s1) % BASE_MOD
+	a.cnt++
+	return a
+}
+
 func (a *Adler32) Hash() uint32 {
 	return (a.s2 << 16) | a.s1
 }
 
 func (a *Adler32) Reset() RollingHash {
 	a.cnt = 0
-	a.s1 = 0
+	a.s1 = 1
 	a.s2 = 0
 	return a
 }
